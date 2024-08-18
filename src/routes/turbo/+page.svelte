@@ -4,9 +4,9 @@
 	import { AppBar, AppShell, RangeSlider } from '@skeletonlabs/skeleton';
 	import Animation from '$lib/Animation.svelte';
 
-	const max = 20;
+	const max = 100;
 	const min = 0;
-	const step = 1;
+	const step = 5;
 
 	function handleSpeedChange(event: Event, trainNumber: number) {
 		const newSpeed = parseInt((event.target as HTMLInputElement).value);
@@ -31,6 +31,8 @@
 		<AppBar background="bg-violet-700">
 			<svelte:fragment slot="lead">
 				<strong class="text-xl uppercase">SRT Railway Stations </strong>
+				<a href="/" class="btn " data-sveltekit-preload-data="hover">Safe</a>
+				<a href="/turbo" class="btn " data-sveltekit-preload-data="hover">Turbo</a>
 			</svelte:fragment>
 			<svelte:fragment slot="trail">
 				<button class="btn btn-sm variant-ghost-surface" on:click={start}> Start </button>
