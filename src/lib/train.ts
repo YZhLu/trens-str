@@ -1,8 +1,9 @@
 import { Semaphore } from 'async-mutex';
 import { writable, get } from 'svelte/store';
 
-export const size: number[] = [192, 192];
-export const tremLength: number = 36;
+export const sizeStore = writable<number[]>([200, 200]);
+export const tremLength: number = 40;
+let step = 0;
 
 interface Train {
 	speed: number; // Velocidade em pixels por segundo
@@ -15,8 +16,7 @@ interface Train {
 	stopFlag: boolean; // Flag para parar o trem
 }
 
-// Comprimento do trilho em pixels (ajuste conforme necessário)
-const trackLength = size[0];
+const trackLength = get(sizeStore)[0];
 const initialTrains: Train[] = [
 	{
 		id: 1,
@@ -24,7 +24,7 @@ const initialTrains: Train[] = [
 		position: 0,
 		path: [1, 2, 3, 4],
 		posX: -tremLength / 2,
-		posY: size[1], // / 2,
+		posY: get(sizeStore)[1] - tremLength / 2, // / 2,
 		color: 'bg-amber-500',
 		stopFlag: false
 	},
@@ -33,7 +33,7 @@ const initialTrains: Train[] = [
 		speed: 10,
 		position: 0,
 		path: [5, 6, 7, 3],
-		posX: -tremLength / 2, //+ size[1] / 2,
+		posX: -tremLength / 2, //+ get(sizeStore)[1] / 2,
 		posY: -tremLength / 2,
 		color: 'bg-sky-400',
 		stopFlag: false
@@ -43,8 +43,8 @@ const initialTrains: Train[] = [
 		speed: 10,
 		position: 0,
 		path: [10, 8, 4, 9],
-		posX: -tremLength / 2 + size[1], // / 2,
-		posY: size[1] - tremLength / 2,
+		posX: -tremLength / 2 + get(sizeStore)[1], // / 2,
+		posY: get(sizeStore)[1] - tremLength / 2,
 		color: 'bg-red-500',
 		stopFlag: false
 	},
@@ -53,8 +53,8 @@ const initialTrains: Train[] = [
 		speed: 10,
 		position: 0,
 		path: [11, 12, 9, 7],
-		posX: -tremLength / 2 + size[1],
-		posY: -tremLength / 2, //+ size[1] / 2,
+		posX: -tremLength / 2 + get(sizeStore)[1],
+		posY: -tremLength / 2, //+ get(sizeStore)[1] / 2,
 		color: 'bg-green-500',
 		stopFlag: false
 	}
@@ -76,39 +76,70 @@ const semaphores: Record<string, Semaphore> = {
 };
 
 async function goAhead(train: Train, line: number) {
-	const interval = 1; // Intervalo de tempo em milissegundos
+	console.log('trem entrou na linha: ', line);
+	const antes = Date.now();
+	const interval = 50; // Intervalo de tempo em milissegundos
 	const trains = get(trainsStore);
 	const existingTrain = trains.find((t) => t.id === train.id);
 
 	if (!existingTrain) return;
 
-	let elapsedTime = 0;
+	let elapsedDistance = 0;
 
-	while (elapsedTime < (trackLength / existingTrain.speed) * 100) {
+	console.log(`Step ${step} - train ${train.id} - Trilho ${line} - Velocidade ${train.speed} m/s`);
+	step++;
+
+	let count = 0;
+	while (elapsedDistance <= trackLength) {
+		console.log('chao', train.speed, train.id, train.posX, train.posY, count, line);
 		if (train.stopFlag) {
 			console.log(`Trem ${train.id} foi parado.`);
-			return; // Interrompe a função se o trem foi sinalizado para parar
+			return; // Interrompe a função se o trem foi sinalizado para para
 		}
 
-		const distance = (existingTrain.speed / 100) * interval; // Distância percorrida em cada intervalo
+		const distance = train.speed; // Distância percorrida em cada intervalo
 
 		// Atualiza a posição X ou Y do trem
 		trainsStore.update((trains) => {
 			const trainToUpdate = trains.find((t) => t.id === train.id);
 			if (trainToUpdate) {
-				if (trainToUpdate.id === 1) console.log(trainToUpdate.id, distance);
-				if (trainToUpdate.posY <= -tremLength / 2) {
+				if (
+					(train.id === 1 && line === 2) ||
+					(train.id === 2 && line === 5) ||
+					(train.id === 3 && line === 4) ||
+					(train.id === 4 && line === 7)
+				) {
+					//if (trainToUpdate.posY <= -tremLength / 2) {
+					trainToUpdate.posY = -tremLength / 2;
 					trainToUpdate.posX += distance; //trainToUpdate.speed;
 				}
-				if (trainToUpdate.posX >= size[0] - tremLength / 2) {
-					trainToUpdate.posX = size[0] - tremLength / 2;
+				if (
+					(train.id === 1 && line === 3) ||
+					(train.id === 2 && line === 6) ||
+					(train.id === 3 && line === 9) ||
+					(train.id === 4 && line === 11)
+				) {
+					//if (trainToUpdate.posX >= get(sizeStore)[0] - tremLength / 2) {
+					trainToUpdate.posX = get(sizeStore)[0] - tremLength / 2;
 					trainToUpdate.posY += distance; //trainToUpdate.speed;
 				}
-				if (trainToUpdate.posY >= size[1] - tremLength / 2) {
-					trainToUpdate.posY = size[1] - tremLength / 2;
+				if (
+					(train.id === 1 && line === 4) ||
+					(train.id === 2 && line === 7) ||
+					(train.id === 3 && line === 10) ||
+					(train.id === 4 && line === 12)
+				) {
+					//if (trainToUpdate.posY >= get(sizeStore)[1] - tremLength / 2) {
+					trainToUpdate.posY = get(sizeStore)[1] - tremLength / 2;
 					trainToUpdate.posX -= distance; //trainToUpdate.speed;
 				}
-				if (trainToUpdate.posX <= -tremLength / 2) {
+				if (
+					(train.id === 1 && line === 1) ||
+					(train.id === 2 && line === 3) ||
+					(train.id === 3 && line === 8) ||
+					(train.id === 4 && line === 9)
+				) {
+					//if (trainToUpdate.posX <= -tremLength / 2) {
 					trainToUpdate.posX = -tremLength / 2;
 					trainToUpdate.posY -= distance; //trainToUpdate.speed;
 				}
@@ -116,14 +147,15 @@ async function goAhead(train: Train, line: number) {
 			return [...trains];
 		});
 
-		// Espera pelo intervalo de tempo antes de continuar
 		await sleep(interval);
 
-		// Atualiza o tempo decorrido
-		elapsedTime += interval;
+		elapsedDistance += train.speed;
+		count++;
 	}
 
 	console.log(`Trem ${train.id} concluiu a travessia do trilho ${line}`);
+	const duracao = Date.now() - antes;
+	console.log('Tempo dentro do trilho --> ', duracao);
 }
 
 async function move(train: Train) {
@@ -161,11 +193,11 @@ export async function startTrains() {
 	}
 }
 
-// Função para resetar os trens
+// Função para resetar os trens not working properly
 export function stopTrains() {
 	// Sinaliza para todos os trens pararem
-	trainsStore.update(trains => {
-		trains.forEach(train => {
+	trainsStore.update((trains) => {
+		trains.forEach((train) => {
 			train.stopFlag = true; // Sinaliza para cada trem parar
 		});
 		return [...trains];
